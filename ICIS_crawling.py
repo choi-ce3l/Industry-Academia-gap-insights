@@ -4,7 +4,6 @@ import os
 from urllib.parse import urljoin
 import pandas as pd
 
-
 class ICISPaperScraper:
     def __init__(self, year):
         self.year = str(year)
