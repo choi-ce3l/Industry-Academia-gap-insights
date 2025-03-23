@@ -5,6 +5,8 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import re
 import os
+from tqdm import tqdm
+import time  # 요청 사이 간격을 두고 싶을 경우 사용
 
 def collect_theverge_links(start_date: str, end_date: str) -> list:
     """
@@ -92,10 +94,21 @@ def scrape_theverge_article(href: str, file_path: str = "data.csv"):
     except Exception as e:
         print(f"❌ 크롤링 실패: {url} / 오류: {e}")
 
-# example
-# 링크 수집
-# links = collect_theverge_links("2023-01-01", "2023-01-01")
-#
-# 수집한 링크에서 기사 크롤링 및 저장
-# for href in links:
-#     scrape_theverge_article(href)
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="The Verge AI 기사 크롤러")
+    parser.add_argument('--start', type=str, required=True, help="시작 날짜 (예: 2023-01-01)")
+    parser.add_argument('--end', type=str, required=True, help="끝 날짜 (예: 2023-01-31)")
+    parser.add_argument('--output', type=str, default="data.csv", help="저장할 파일 경로")
+
+    args = parser.parse_args()
+
+    # 링크 수집
+    links = collect_theverge_links(args.start, args.end)
+
+    # 기사 크롤링 및 저장 with tqdm
+    for href in tqdm(links, desc="📰 기사 크롤링 진행 중"):
+        relative_href = href.replace("https://www.theverge.com", "") if href.startswith("https") else href
+        scrape_theverge_article(relative_href, file_path=args.output)
+        time.sleep(1)
