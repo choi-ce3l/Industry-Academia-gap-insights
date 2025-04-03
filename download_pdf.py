@@ -5,13 +5,31 @@ import pandas as pd
 import re
 
 def extract_keywords_section(text: str) -> str:
-    pattern = r"keywords[s]?:[\s\S]*?(?=\n\s*(?:\d*\.*\s*)?Introduction)"
+    # 다음 섹션의 대표적인 제목들을 패턴으로 정의
+    section_titles = [
+        "Introduction",
+        "Motivation",
+        "PDW",
+        "Accelerating",
+        "Research",
+        "Purpose",
+        "Challenges",
+        "Acknowledgements",
+        "Teaching"
+    ]
+
+    # 다양한 번호 패턴 + 콜론 포함 여부까지 모두 대응
+    next_sections = [rf"(?:\d+\s*\.?\s*)?{title}:?" for title in section_titles]
+    section_pattern = "|".join(next_sections)
+
+    # Keywords부터 다음 섹션 전까지 추출
+    pattern = rf"keywords[s]?:[\s\S]*?(?=\n\s*({section_pattern}))"
+
     match = re.search(pattern, text, re.IGNORECASE)
     if match:
         extracted = match.group(0)
-        # "keywords:" 제거하고 줄바꿈/공백 정리
-        cleaned = re.sub(r"(?i)keywords[s]?:", "", extracted)  # 대소문자 무시하고 키워드 제거
-        return " ".join(cleaned.split())  # 줄바꿈 제거 + 공백 정리
+        cleaned = re.sub(r"(?i)keywords[s]?:", "", extracted)  # Keywords: 제거
+        return " ".join(cleaned.split())  # 줄바꿈 제거 및 공백 정리
     else:
         return ""
 
