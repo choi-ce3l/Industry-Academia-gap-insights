@@ -69,17 +69,20 @@ def scrape_theverge_article(href: str, file_path: str = "data.csv"):
         soup = BeautifulSoup(response.text, 'html.parser')
 
         head = soup.select_one('#content h1')
-        contents = soup.select_one('div.duet--layout--entry-body')
+        contents = soup.select('#zephr-anchor > div > p')
+        keywords = soup.select('#zephr-anchor > div > ul > li')
         date = soup.select_one('time')
 
         title_text = head.get_text(strip=True) if head else "N/A"
-        content_text = contents.get_text(strip=True) if contents else "N/A"
+        content_text = "\n".join(p.get_text(strip=True) for p in contents) if contents else "N/A"
+        keyword_text = ", ".join(k.get_text(strip=True) for k in keywords) if keywords else "N/A"
         date_text = date.get_text(strip=True) if date else "N/A"
 
         new_data = pd.DataFrame([{
             "date": date_text,
             "title": title_text,
             "content": content_text,
+            "keywords": keyword_text,
             "url": url
         }])
 
