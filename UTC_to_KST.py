@@ -22,13 +22,13 @@ def convert_to_kst(time_str):
         print(f"[변환 실패] {time_str}")
         return pd.NaT
 
-# 변환
-df['kst_date'] = df['date'].apply(convert_to_kst)
-
-# 필터링: 2021-01-01 ~ 2025-03-31 (KST 기준)
-start_date = datetime(2021, 1, 1, tzinfo=kst)
-end_date = datetime(2025, 3, 31, 23, 59, 59, tzinfo=kst)
-filtered_df = df[(df['kst_date'] >= start_date) & (df['kst_date'] <= end_date)]
-
-# 결과 확인
-print(filtered_df)
+# # 변환
+# df['kst_date'] = df['date'].apply(convert_to_kst)
+#
+# # 필터링: 2021-01-01 ~ 2025-03-31 (KST 기준)
+# start_date = datetime(2021, 1, 1, tzinfo=kst)
+# end_date = datetime(2025, 3, 31, 23, 59, 59, tzinfo=kst)
+# filtered_df = df[(df['kst_date'] >= start_date) & (df['kst_date'] <= end_date)]
+#
+# # 결과 확인
+# print(filtered_df)
