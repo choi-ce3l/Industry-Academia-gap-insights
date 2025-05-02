@@ -10,7 +10,7 @@ from sklearn.decomposition import FactorAnalysis
 from gensim import corpora, models
 from gensim.models.coherencemodel import CoherenceModel
 import matplotlib.pyplot as plt
-from pyLDAvis import display
+import os
 
 # ----------------------------------
 # 🔧 텍스트 전처리 함수
@@ -91,6 +91,7 @@ def prepare_documents(df, data_type='journal'):
 
 # ----------------------------------
 # 📈 Coherence 점수 계산
+# (여기서는 안쓰지만 남겨둠)
 # ----------------------------------
 def compute_coherence_scores(dictionary, corpus, texts, start, limit, step):
     scores = []
@@ -120,7 +121,10 @@ def run_factor_analysis(topic_df, n_factors=5, max_iter=500):
     return pd.DataFrame(factors, columns=loadings.columns), loadings
 
 # ----------------------------------
-# 🏆 요인별 주요 문서 출력
+# 📊 요인 분석 상위 문서 5개 저장
+# ----------------------------------
+# ----------------------------------
+# 📊 요인 분석 상위 문서 5개 저장 (500글자 제한 추가)
 # ----------------------------------
 def top_docs_by_factor(factor_df, docs_df, top_n=5, output_path='top_documents_by_factor.txt', data_type='journal'):
     with open(output_path, 'w', encoding='utf-8') as f:
@@ -142,10 +146,88 @@ def top_docs_by_factor(factor_df, docs_df, top_n=5, output_path='top_documents_b
                 else:
                     raise ValueError("data_type은 'journal' 또는 'article' 중 하나여야 합니다.")
 
-                f.write(f"🔍 Content: {content}\n")
+                # 🔵 본문 500글자까지만 저장
+                if len(content) > 500:
+                    content = content[:500].rstrip() + "..."
+
+                f.write(f"🔍 Content (500자 이내): {content}\n")
                 f.write(f"🏷️ Keywords: {row.get('keywords', '')}\n")
                 f.write("-"*60 + "\n")
 
-    print(f"✅ 저장 완료: {output_path}")
+    print(f"✅ 저장 완료 (본문 500자 제한 적용): {output_path}")
+
+# ----------------------------------
+# 📝 LDA 모델로부터 토픽별 키워드 저장
+# ----------------------------------
+def save_lda_topics(lda_model, num_words, output_path):
+    with open(output_path, 'w', encoding='utf-8') as f:
+        for idx, topic in lda_model.show_topics(num_topics=-1, num_words=num_words, formatted=False):
+            keywords = ", ".join([word for word, _ in topic])
+            f.write(f"Topic {idx}: {keywords}\n")
+    print(f"✅ LDA 토픽 저장 완료: {output_path}")
+
+# ----------------------------------
+# 🎯 년도별로 LDA + Factor 분석
+# ----------------------------------
+def run_yearly_lda_factor_analysis(df, data_type='journal', n_topics=10, n_factors=5, vectorizer_method='tfidf', max_features=5000, output_dir='results'):
+    os.makedirs(output_dir, exist_ok=True)
+
+    years = sorted(df['date'].unique())
+
+    for year in years:
+        print(f"🔵 Processing year: {year}")
+
+        # 해당 연도 데이터 추출
+        year_df = df[df['date'] == year].reset_index(drop=True)
+
+        # 벡터화
+        vectorizer, vectorized_matrix = preprocess_and_vectorize(year_df, method=vectorizer_method, max_features=max_features, data_type=data_type)
+
+        # Gensim LDA용 corpus 준비
+        processed_docs = prepare_documents(year_df, data_type=data_type)
+        dictionary = corpora.Dictionary(processed_docs)
+        corpus = [dictionary.doc2bow(doc) for doc in processed_docs]
+
+        # LDA 모델 학습
+        lda_model = models.LdaModel(corpus=corpus, id2word=dictionary, num_topics=n_topics, random_state=42, passes=10)
+
+        # 🎯 LDA 토픽별 키워드 저장 추가
+        save_lda_topics(
+            lda_model=lda_model,
+            num_words=10,  # 토픽당 상위 10개 단어
+            output_path=f"{output_dir}/02_{data_type}_{year}_lda_topics.txt"
+        )
+
+        # 토픽-문서 행렬 생성
+        topic_df = extract_topic_matrix(lda_model, corpus, n_topics)
+
+        # Factor Analysis
+        factor_df, loadings = run_factor_analysis(topic_df, n_factors=n_factors)
+
+        # 결과 저장
+        topic_df.to_csv(f"{output_dir}/02_{data_type}_{year}_topic_matrix.csv", index=False)
+        factor_df.to_csv(f"{output_dir}/02_{data_type}{year}_factor_scores.csv", index=False)
+        loadings.to_csv(f"{output_dir}/02_{data_type}{year}_factor_loadings.csv", index=True)
+
+        top_docs_by_factor(
+            factor_df=factor_df,
+            docs_df=year_df,
+            top_n=5,
+            output_path=f"{output_dir}/02_{data_type}_{year}_top_docs_by_factor.txt",  # 여기 수정
+            data_type=data_type
+        )
+
+        print(f"✅ Year {year} 완료! (Topic Matrix, Factor Scores, Loadings, Top Docs 저장)")
 
 
+''' 사용 방법
+run_yearly_lda_factor_analysis(
+    df,  # 👉 당신이 만든 데이터프레임
+    data_type='journal',  # 👉 논문이면 'journal', 뉴스 기사면 'article'
+    n_topics=10,          # 👉 고정: LDA 토픽 개수
+    n_factors=5,          # 👉 고정: Factor Analysis 요인 수
+    vectorizer_method='tfidf',  # 👉 'count'나 'tfidf' 중 선택 ('tfidf' 추천)
+    max_features=5000,     # 👉 벡터라이저 최대 단어 수 (선택사항)
+    output_dir='data/result/02'   # 👉 결과 저장 폴더명
+)
+'''
