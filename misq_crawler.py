@@ -22,6 +22,7 @@ start_urls = [base_url.format(vol, issue) for vol in range(45, 50) for issue in 
 
 # ✅ 볼륨-연도 매핑
 volume_year_map = {
+    44:'2020',
     45: "2021",
     46: "2022",
     47: "2023",
