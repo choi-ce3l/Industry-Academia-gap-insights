@@ -115,3 +115,8 @@ if __name__ == "__main__":
         relative_href = href.replace("https://www.theverge.com", "") if href.startswith("https") else href
         scrape_theverge_article(relative_href, file_path=args.output)
         time.sleep(1)
+
+'''
+실행 방법
+
+'''
