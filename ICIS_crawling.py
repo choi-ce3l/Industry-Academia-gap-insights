@@ -96,9 +96,10 @@ class ICISPaperScraper:
         df.to_csv(self.metadata_file, index=False)
         print(f"\n✅ 메타데이터 저장 완료: {self.metadata_file}")
         return df
-'''    
-# 사용 예시
-scraper = ICISPaperScraper(year=2021)
-df = scraper.run()
-df.head()
-'''
+
+
+if __name__ == "__main__":
+    # 예시: 2021년 컨퍼런스 논문 전부 크롤링
+    scraper = ICISPaperScraper(year=2020)
+    df = scraper.run()
+    print(df.head())
